@@ -8,21 +8,27 @@ def clean_names(raw_names):
     result = []
     for i in raw_names:
 
+        #Split each row based on the various combinations of DBA into legal name and dba name
         split_arr = re.split(split_dba_regex, i)
         company_legal_name = (split_arr[0])
+
+        # Replace None with empty string to avoid errors
         if len(split_arr) > 1:
             company_dba_name = (split_arr[1])
         else:
             company_dba_name = ''
 
+        # Remove common unwanted characters from anywhere in the legal name or dba name strings
         for ch in characters_to_remove_list:
             if ch in company_dba_name:
                 company_dba_name = company_dba_name.replace(ch, '')
             if ch in company_legal_name:
                 company_legal_name = company_legal_name.replace(ch, '')
 
+        # Replace underscore with space
         company_dba_name = company_dba_name.replace('_', ' ')
 
+        # Remove / and , from first or last positions of all names (keep them if they are somewhere in between)
         if len(company_legal_name) > 0 and company_legal_name[0] in ['/', ',']:
             company_legal_name = company_legal_name[1:]
         if len(company_legal_name) > 0 and company_legal_name[-1] in ['/', ',']:
@@ -33,9 +39,11 @@ def clean_names(raw_names):
         if len(company_dba_name) > 0 and company_dba_name[-1] in ['/', ',']:
             company_dba_name = company_dba_name[:-1]
 
+        # Special case for , after LLC
         company_legal_name = (company_legal_name.replace('LLC,', 'LLC').strip())
         company_dba_name = (company_dba_name.strip())
 
+        # Set dba name back to None if its blank
         if company_dba_name == '':
             company_dba_name = None
 

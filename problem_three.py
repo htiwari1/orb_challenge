@@ -3,6 +3,7 @@ import urllib.robotparser
 import requests
 import time
 
+
 def office_scrape():
     rp = urllib.robotparser.RobotFileParser()
     rp.set_url("http://www.dot.ca.gov/robots.txt")
@@ -19,14 +20,14 @@ def office_scrape():
 
     offices_link = (soup.find('div', class_='settings-links').findAll('a')[1]['href'])
 
-    # See if we are allowed to scrape by the site owner
+    # See if we are allowed to scrape next page by the site owner
     if not rp.can_fetch("*", root_link + offices_link):
         return "Cannot Scrape due to robots.txt conditions"
 
     # Add a time delay if specified by robots.txt
-    rrate = rp.request_rate("*")
-    if rrate is not None:
-        time.sleep(rrate)
+    min_request_delay_rate = rp.request_rate("*")
+    if min_request_delay_rate is not None:
+        time.sleep(min_request_delay_rate)
 
     offices_page = requests.get(root_link + offices_link)
     soup_offices = BeautifulSoup(offices_page.content, 'html.parser')
@@ -34,16 +35,17 @@ def office_scrape():
     office_table_row_list = (soup_offices.find('table', class_='table table-striped').find('tbody').find_all('tr'))
     result_array = []
 
+    # Loop through html table rows with offices
     for office_row in office_table_row_list:
         office_name = office_row.find_all('td')[0].getText().split('-')[0].replace(':', '').strip()
         office_link = 'http://www.dot.ca.gov'
         office_address = office_row.find_all('td')[1].getText().strip().split('\n')[0]
         office_state = office_row.find_all('td')[1].getText().strip().split('\n')[-1].split(' ')[-2]
         office_zip = office_row.find_all('td')[1].getText().strip().split('\n')[-1].split(' ')[-1].replace('.', '')
-        office_phone = office_row.find_all('td')[3].getText().strip().split('Public Affairs/Media Line:')[0].replace(
-            'General Information:', '').strip()
-        office_city = office_row.find_all('td')[1].getText().strip().split('\n')[-1].replace(office_state, '').replace(
-            office_zip, '').replace(',', '').replace('.', '').strip()
+        office_phone = office_row.find_all('td')[3].getText().strip().split('Public Affairs/Media Line:')[0]\
+            .replace('General Information:', '').strip()
+        office_city = office_row.find_all('td')[1].getText().strip().split('\n')[-1].replace(office_state, '')\
+            .replace(office_zip, '').replace(',', '').replace('.', '').strip()
 
         mail_address = office_row.find_all('td')[2].getText().strip().split('\n')[0]
         mail_pobox = None
@@ -53,9 +55,8 @@ def office_scrape():
 
         mail_state = office_row.find_all('td')[2].getText().strip().split('\n')[-1].split(' ')[-2]
         mail_zip = office_row.find_all('td')[2].getText().strip().split('\n')[-1].split(' ')[-1].replace('.', '')
-        mail_city = office_row.find_all('td')[2].getText().strip().split('\n')[-1].replace(mail_state, '').replace(mail_zip,
-                                                                                                                   '').replace(
-            ',', '').replace('.', '').strip()
+        mail_city = office_row.find_all('td')[2].getText().strip().split('\n')[-1].replace(mail_state, '')\
+            .replace(mail_zip, '').replace(',', '').replace('.', '').strip()
         mail_phone = None
 
         result_json = {}
@@ -77,10 +78,12 @@ def office_scrape():
         try:
             result_json['office_link'] = office_link + (office_row.find_all('td')[0].find('a')['href'])
         except TypeError:
+            # In case there is no 'a' element
             pass
         result_array.append(result_json)
 
     return result_array
+
 
 if __name__ == "__main__":
     print(office_scrape())
